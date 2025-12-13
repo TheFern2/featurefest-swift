@@ -2,12 +2,14 @@
 
 A Swift package for integrating feature voting into iOS apps.
 
-## Try It Now
+## Install package
 
-1. Clone this repo and open `Package.swift` in Xcode
-2. Navigate to `Demo/ContentView.swift` in the file browser
-3. Click the **Resume** button (▶️) in the preview pane on the right
-4. See it running with live data!
+In xcode go to File -> "Add package dependencies..." and search for https://github.com/AlexanderKvamme/featurefest-swift
+
+## Demo
+1. Navigate to `Demo/ContentView.swift` in the file browser
+2. Click the **Resume** button (▶️) in the preview pane on the right
+3. See it running with live data!
 
 ## Quick Start
 
