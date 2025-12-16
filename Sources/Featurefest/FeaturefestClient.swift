@@ -52,12 +52,14 @@ public class FeaturefestClient {
     ///   - title: The title of the feature request
     ///   - description: The description of the feature request
     ///   - userId: The user ID creating the feature (optional, will use default if nil)
+    ///   - creatorEmail: The email of the creator (optional, for notifications)
     ///   - status: The initial status (defaults to .ideas)
     /// - Returns: The created Feature object
     public func createFeature(
         title: String,
         description: String,
         userId: String? = nil,
+        creatorEmail: String? = nil,
         status: FeatureStatus = .ideas
     ) async throws -> Feature {
         let endpoint = "/features"
@@ -66,7 +68,8 @@ public class FeaturefestClient {
             description: description,
             status: status.rawValue,
             boardId: apiKey,
-            userId: userId
+            userId: userId,
+            creatorEmail: creatorEmail
         )
         
         let features: [Feature] = try await performRequest(
@@ -90,12 +93,14 @@ public class FeaturefestClient {
     ///   - featureId: The ID of the feature to vote for
     ///   - voteType: Only .up is supported
     ///   - userId: The user ID (optional, will use default if nil)
+    ///   - email: The voter's email (optional, for notifications)
     /// - Returns: The created vote, or nil if vote was removed
     @discardableResult
     public func vote(
         featureId: String,
         voteType: VoteType,
-        userId: String? = nil
+        userId: String? = nil,
+        email: String? = nil
     ) async throws -> Vote? {
         let actualUserId = userId ?? "external-user"
         // Only allow upvotes
@@ -116,7 +121,8 @@ public class FeaturefestClient {
                 return try await createVote(
                     featureId: featureId,
                     voteType: .up,
-                    userId: actualUserId
+                    userId: actualUserId,
+                    email: email
                 )
             }
         } catch {
@@ -124,7 +130,8 @@ public class FeaturefestClient {
             return try await createVote(
                 featureId: featureId,
                 voteType: .up,
-                userId: actualUserId
+                userId: actualUserId,
+                email: email
             )
         }
     }
@@ -133,13 +140,15 @@ public class FeaturefestClient {
     /// - Parameters:
     ///   - featureId: The ID of the feature to vote for
     ///   - userId: The user ID (optional, will use default if nil)
+    ///   - email: The voter's email (optional, for notifications)
     /// - Returns: The created vote, or nil if vote was removed
     @discardableResult
     public func upvote(
         featureId: String,
-        userId: String? = nil
+        userId: String? = nil,
+        email: String? = nil
     ) async throws -> Vote? {
-        return try await vote(featureId: featureId, voteType: .up, userId: userId)
+        return try await vote(featureId: featureId, voteType: .up, userId: userId, email: email)
     }
     
     /// Remove a user's vote from a feature
@@ -213,13 +222,15 @@ extension FeaturefestClient {
     private func createVote(
         featureId: String,
         voteType: VoteType,
-        userId: String
+        userId: String,
+        email: String? = nil
     ) async throws -> Vote {
         let endpoint = "/votes"
         let voteData = CreateVoteRequest(
             featureId: featureId,
             userId: userId,
-            voteType: voteType.rawValue
+            voteType: voteType.rawValue,
+            email: email
         )
         
         do {
@@ -252,6 +263,7 @@ extension FeaturefestClient {
                 id: UUID().uuidString,
                 featureId: featureId,
                 userId: userId,
+                email: email,
                 voteType: voteType,
                 createdAt: Date(),
                 updatedAt: nil
@@ -343,11 +355,13 @@ private struct CreateVoteRequest: Codable {
     let featureId: String
     let userId: String
     let voteType: String
-    
+    let email: String?
+
     enum CodingKeys: String, CodingKey {
         case featureId = "feature_id"
         case userId = "user_id"
         case voteType = "vote_type"
+        case email
     }
 }
 
@@ -365,13 +379,15 @@ private struct CreateFeatureRequest: Codable {
     let status: String
     let boardId: String
     let userId: String?
-    
+    let creatorEmail: String?
+
     enum CodingKeys: String, CodingKey {
         case title
         case description
         case status
         case boardId = "board_id"
         case userId = "user_id"
+        case creatorEmail = "creator_email"
     }
 }
 

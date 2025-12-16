@@ -10,12 +10,13 @@ public struct Feature: Codable, Identifiable, Hashable {
     public let status: FeatureStatus
     public let boardId: String
     public let userId: String?
+    public let creatorEmail: String?
     public let createdAt: Date
     public let updatedAt: Date?
     public let upvotes: Int
     public let downvotes: Int
     public let totalVotes: Int
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case title
@@ -23,6 +24,7 @@ public struct Feature: Codable, Identifiable, Hashable {
         case status
         case boardId = "board_id"
         case userId = "user_id"
+        case creatorEmail = "creator_email"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case upvotes
@@ -42,7 +44,8 @@ public struct Feature: Codable, Identifiable, Hashable {
         
         boardId = try container.decode(String.self, forKey: .boardId)
         userId = try container.decodeIfPresent(String.self, forKey: .userId)
-        
+        creatorEmail = try container.decodeIfPresent(String.self, forKey: .creatorEmail)
+
         let createdAtString = try container.decode(String.self, forKey: .createdAt)
         createdAt = ISO8601DateFormatter().date(from: createdAtString) ?? Date()
         
@@ -79,41 +82,45 @@ public struct Vote: Codable, Identifiable, Hashable {
     public let id: String
     public let featureId: String
     public let userId: String
+    public let email: String?
     public let voteType: VoteType
     public let createdAt: Date
     public let updatedAt: Date?
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case featureId = "feature_id"
         case userId = "user_id"
+        case email
         case voteType = "vote_type"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         id = try container.decode(String.self, forKey: .id)
         featureId = try container.decode(String.self, forKey: .featureId)
         userId = try container.decode(String.self, forKey: .userId)
-        
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+
         let voteTypeString = try container.decode(String.self, forKey: .voteType)
         voteType = VoteType(rawValue: voteTypeString) ?? .up
-        
+
         let createdAtString = try container.decode(String.self, forKey: .createdAt)
         createdAt = ISO8601DateFormatter().date(from: createdAtString) ?? Date()
-        
+
         let updatedAtString = try container.decodeIfPresent(String.self, forKey: .updatedAt)
         updatedAt = updatedAtString.flatMap { ISO8601DateFormatter().date(from: $0) }
     }
-    
+
     // Manual initializer for fallback cases
     public init(
         id: String,
         featureId: String,
         userId: String,
+        email: String? = nil,
         voteType: VoteType,
         createdAt: Date,
         updatedAt: Date?
@@ -121,6 +128,7 @@ public struct Vote: Codable, Identifiable, Hashable {
         self.id = id
         self.featureId = featureId
         self.userId = userId
+        self.email = email
         self.voteType = voteType
         self.createdAt = createdAt
         self.updatedAt = updatedAt
