@@ -14,7 +14,7 @@ public struct FeatureBoardView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var votedFeatures: Set<String> = []
-    @State private var selectedStatus: FeatureStatus = .ideas
+    @State private var selectedStatus: FeatureStatus = .pending
 
     // MARK: - Initialization
 
@@ -91,23 +91,35 @@ public struct FeatureBoardView: View {
 
     private var statusIcon: String {
         switch selectedStatus {
-        case .ideas:
-            return "lightbulb.fill"
+        case .pending:
+            return "clock.fill"
+        case .inReview:
+            return "eye.fill"
+        case .planned:
+            return "calendar.badge.checkmark"
         case .inProgress:
             return "hammer.fill"
-        case .released:
+        case .completed:
             return "checkmark.circle.fill"
+        case .rejected:
+            return "xmark.circle.fill"
         }
     }
 
     private var emptyStateMessage: String {
         switch selectedStatus {
-        case .ideas:
+        case .pending:
             return "Be the first to request a feature!"
+        case .inReview:
+            return "No features are currently under review"
+        case .planned:
+            return "No features are planned yet"
         case .inProgress:
             return "No features are currently in progress"
-        case .released:
-            return "No features have been released yet"
+        case .completed:
+            return "No features have been completed yet"
+        case .rejected:
+            return "No features have been rejected"
         }
     }
 
@@ -250,12 +262,18 @@ private struct FeatureRow: View {
 
     private var statusColor: Color {
         switch feature.status {
-        case .ideas:
+        case .pending:
+            return .gray
+        case .inReview:
             return .blue
+        case .planned:
+            return .purple
         case .inProgress:
             return .orange
-        case .released:
+        case .completed:
             return .green
+        case .rejected:
+            return .red
         }
     }
 }

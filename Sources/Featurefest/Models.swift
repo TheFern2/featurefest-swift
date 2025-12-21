@@ -40,7 +40,7 @@ public struct Feature: Codable, Identifiable, Hashable {
         description = try container.decode(String.self, forKey: .description)
         
         let statusString = try container.decode(String.self, forKey: .status)
-        status = FeatureStatus(rawValue: statusString) ?? .ideas
+        status = FeatureStatus(rawValue: statusString) ?? .pending
         
         boardId = try container.decode(String.self, forKey: .boardId)
         userId = try container.decodeIfPresent(String.self, forKey: .userId)
@@ -62,15 +62,21 @@ public struct Feature: Codable, Identifiable, Hashable {
 
 /// The status of a feature request
 public enum FeatureStatus: String, Codable, CaseIterable {
-    case ideas = "ideas"
+    case pending = "pending"
+    case inReview = "in_review"
+    case planned = "planned"
     case inProgress = "in_progress"
-    case released = "released"
-    
+    case completed = "completed"
+    case rejected = "rejected"
+
     public var displayName: String {
         switch self {
-        case .ideas: return "Ideas"
+        case .pending: return "Pending"
+        case .inReview: return "In Review"
+        case .planned: return "Planned"
         case .inProgress: return "In Progress"
-        case .released: return "Released"
+        case .completed: return "Completed"
+        case .rejected: return "Rejected"
         }
     }
 }

@@ -53,14 +53,14 @@ public class FeaturefestClient {
     ///   - description: The description of the feature request
     ///   - userId: The user ID creating the feature (optional, will use default if nil)
     ///   - creatorEmail: The email of the creator (optional, for notifications)
-    ///   - status: The initial status (defaults to .ideas)
+    ///   - status: The initial status (defaults to .pending)
     /// - Returns: The created Feature object
     public func createFeature(
         title: String,
         description: String,
         userId: String? = nil,
         creatorEmail: String? = nil,
-        status: FeatureStatus = .ideas
+        status: FeatureStatus = .pending
     ) async throws -> Feature {
         let endpoint = "/features"
         let featureData = CreateFeatureRequest(
