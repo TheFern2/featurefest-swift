@@ -151,28 +151,40 @@ public struct FeatureBoardView: View {
     }
 
     private var featureList: some View {
-        List {
-            if let errorMessage = errorMessage {
-                Section {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
                         .font(.caption)
+                        .padding()
+                }
+
+                ForEach(filteredFeatures) { feature in
+                    ZStack {
+                        NavigationLink(destination: FeatureDetailView(
+                            feature: feature,
+                            hasVoted: votedFeatures.contains(feature.id),
+                            onUpvote: { await upvote(feature) }
+                        )) {
+                            EmptyView()
+                        }
+                        .opacity(0)
+
+                        FeatureRow(
+                            feature: feature,
+                            hasVoted: votedFeatures.contains(feature.id),
+                            onUpvote: { await upvote(feature) }
+                        )
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+                    }
                 }
             }
-
-            ForEach(filteredFeatures) { feature in
-                FeatureRow(
-                    feature: feature,
-                    hasVoted: votedFeatures.contains(feature.id),
-                    onUpvote: { await upvote(feature) }
-                )
-            }
+            .padding(.horizontal)
+            .padding(.top, 8)
         }
-        #if os(iOS)
-        .listStyle(.insetGrouped)
-        #else
-        .listStyle(.plain)
-        #endif
     }
 
     // MARK: - Actions
@@ -249,7 +261,7 @@ private struct FeatureRow: View {
                 Text(feature.description)
                     .font(.body)
                     .foregroundColor(.secondary)
-                    .lineLimit(3)
+                    .lineLimit(5)
 
                 // Status badge
                 Text(feature.status.displayName)
@@ -272,19 +284,111 @@ private struct FeatureRow: View {
                     isVoting = false
                 }
             } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: hasVoted ? "chevron.up.circle.fill" : "chevron.up.circle")
-                        .font(.system(size: 32))
+                VStack(spacing: 6) {
+                    Image(systemName: "triangle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(hasVoted ? .blue : .black)
                     Text("\(feature.totalVotes)")
-                        .font(.system(.body, design: .rounded))
-                        .fontWeight(.semibold)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(hasVoted ? .blue : .black)
                 }
-                .foregroundColor(hasVoted ? .blue : .secondary)
+                .frame(width: 56, height: 70)
+                .background(hasVoted ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                .cornerRadius(12)
             }
             .buttonStyle(.borderless)
             .disabled(isVoting)
         }
-        .padding(.vertical, 4)
+        .padding()
+    }
+
+    private var statusColor: Color {
+        switch feature.status {
+        case .pending:
+            return .gray
+        case .inReview:
+            return .blue
+        case .planned:
+            return .purple
+        case .inProgress:
+            return .orange
+        case .completed:
+            return .green
+        case .rejected:
+            return .red
+        }
+    }
+}
+
+// MARK: - Feature Detail View
+
+@available(iOS 15.0, macOS 12.0, *)
+private struct FeatureDetailView: View {
+    let feature: Feature
+    let hasVoted: Bool
+    let onUpvote: () async -> Void
+
+    @State private var isVoting = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Title
+                Text(feature.title)
+                    .font(.title)
+                    .fontWeight(.bold)
+
+                // Status badge
+                HStack {
+                    Text(feature.status.displayName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(statusColor.opacity(0.15))
+                        .foregroundColor(statusColor)
+                        .cornerRadius(8)
+
+                    Spacer()
+                }
+
+                // Description
+                Text(feature.description)
+                    .font(.body)
+                    .foregroundColor(.primary)
+
+                // Upvote button
+                Button {
+                    Task {
+                        isVoting = true
+                        await onUpvote()
+                        isVoting = false
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: hasVoted ? "chevron.up.circle.fill" : "chevron.up.circle")
+                            .font(.system(size: 24))
+                        Text("\(feature.totalVotes) votes")
+                            .font(.headline)
+                        Spacer()
+                        if isVoting {
+                            ProgressView()
+                        }
+                    }
+                    .padding()
+                    .background(hasVoted ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                    .foregroundColor(hasVoted ? .blue : .primary)
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+                .disabled(isVoting)
+
+                Spacer()
+            }
+            .padding()
+        }
+        .navigationTitle("Feature Details")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var statusColor: Color {
