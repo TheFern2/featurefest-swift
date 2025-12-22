@@ -15,6 +15,7 @@ public struct FeatureBoardView: View {
     @State private var errorMessage: String?
     @State private var votedFeatures: Set<String> = []
     @State private var selectedStatus: FeatureStatus = .pending
+    @State private var showingCreateFeature = false
 
     // MARK: - Initialization
 
@@ -39,7 +40,9 @@ public struct FeatureBoardView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .padding()
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal)
+            .padding(.bottom, 8)
 
             // Content
             if isLoading && features.isEmpty {
@@ -54,6 +57,22 @@ public struct FeatureBoardView: View {
                 featureList
             }
         }
+        .navigationTitle("Feature Requests")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(content: {
+            ToolbarItem(placement: toolbarPlacement) {
+                Button(action: {
+                    showingCreateFeature = true
+                }) {
+                    Image(systemName: "plus")
+                }
+            }
+        })
+        .sheet(isPresented: $showingCreateFeature) {
+            CreateFeatureView(client: client, userId: userId) {
+                await loadFeatures()
+            }
+        }
         .task {
             await loadFeatures()
         }
@@ -66,6 +85,14 @@ public struct FeatureBoardView: View {
 
     private var filteredFeatures: [Feature] {
         features.filter { $0.status == selectedStatus }
+    }
+
+    private var toolbarPlacement: ToolbarItemPlacement {
+        #if os(iOS)
+        return .navigationBarTrailing
+        #else
+        return .automatic
+        #endif
     }
 
     // MARK: - View Components
@@ -275,6 +302,84 @@ private struct FeatureRow: View {
         case .rejected:
             return .red
         }
+    }
+}
+
+// MARK: - Create Feature View
+
+@available(iOS 15.0, macOS 12.0, *)
+private struct CreateFeatureView: View {
+    let client: FeaturefestClient
+    let userId: String
+    let onFeatureCreated: () async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var title = ""
+    @State private var description = ""
+    @State private var isCreating = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section {
+                    TextField("Title", text: $title)
+                }
+
+                Section(header: Text("Description")) {
+                    TextEditor(text: $description)
+                        .frame(minHeight: 100)
+                }
+
+                if let errorMessage = errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+
+                Section {
+                    HStack {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+
+                        Spacer()
+
+                        Button("Create") {
+                            Task {
+                                await createFeature()
+                            }
+                        }
+                        .disabled(title.isEmpty || description.isEmpty || isCreating)
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+            }
+            .navigationTitle("New Feature Request")
+        }
+    }
+
+    private func createFeature() async {
+        isCreating = true
+        errorMessage = nil
+
+        do {
+            _ = try await client.createFeature(
+                title: title,
+                description: description,
+                userId: userId
+            )
+
+            await onFeatureCreated()
+            dismiss()
+        } catch {
+            errorMessage = "Failed to create: \(error.localizedDescription)"
+        }
+
+        isCreating = false
     }
 }
 

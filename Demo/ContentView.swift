@@ -9,10 +9,15 @@ struct ContentView: View {
     private let boardId = "f9f8ac71-01fa-445c-858e-e6e7e8308fc6"
 
     var body: some View {
-        NavigationView {
-            FeatureBoardView(boardId: boardId)
-                .navigationTitle("Feature Requests")
-                .navigationBarTitleDisplayMode(.large)
+        if #available(iOS 16.0, *) {
+            NavigationStack {
+                FeatureBoardView(boardId: boardId)
+            }
+        } else {
+            NavigationView {
+                FeatureBoardView(boardId: boardId)
+            }
+            .navigationViewStyle(.stack)
         }
     }
 }
