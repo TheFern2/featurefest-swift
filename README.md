@@ -63,14 +63,27 @@ let feature = try await client.createFeature(
 )
 ```
 
-### Custom User IDs
+### User IDs
 
-By default, `FeatureBoardView` generates a random UUID for each user. For authenticated users, pass a custom user ID:
+By default, `FeatureBoardView` automatically uses the device's `identifierForVendor` as the user ID. This provides a consistent UUID that persists across app launches while remaining unique per device.
+
+If you need to use a custom user ID (for authenticated users, for example), you can pass one - but it **must be in UUID format**:
 
 ```swift
 FeatureBoardView(
     boardId: "your-board-id",
-    userId: currentUser.id
+    userId: "550e8400-e29b-41d4-a947-926655440000"  // Must be valid UUID format
+)
+```
+
+### Email Tracking
+
+You can optionally pass a user's email to associate votes with email addresses. This allows you to send emails to users from the web dashboard later:
+
+```swift
+FeatureBoardView(
+    boardId: "your-board-id",
+    userEmail: "user@example.com"
 )
 ```
 
