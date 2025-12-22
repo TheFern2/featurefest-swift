@@ -75,7 +75,7 @@ public struct FeatureBoardView: View {
             }
         })
         .sheet(isPresented: $showingCreateFeature) {
-            CreateFeatureView(client: client, userId: userId) {
+            CreateFeatureView(client: client, userId: userId, userEmail: userEmail) {
                 await loadFeatures()
             }
         }
@@ -442,6 +442,7 @@ private struct FeatureDetailView: View {
 private struct CreateFeatureView: View {
     let client: FeaturefestClient
     let userId: String
+    let userEmail: String?
     let onFeatureCreated: () async -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -479,9 +480,17 @@ private struct CreateFeatureView: View {
 
                         Spacer()
 
-                        Button("Create") {
+                        Button {
                             Task {
                                 await createFeature()
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if isCreating {
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                }
+                                Text("Create")
                             }
                         }
                         .disabled(title.isEmpty || description.isEmpty || isCreating)
@@ -501,7 +510,8 @@ private struct CreateFeatureView: View {
             _ = try await client.createFeature(
                 title: title,
                 description: description,
-                userId: userId
+                userId: userId,
+                creatorEmail: userEmail
             )
 
             await onFeatureCreated()

@@ -71,7 +71,7 @@ public class FeaturefestClient {
             userId: userId,
             creatorEmail: creatorEmail
         )
-        
+
         let features: [Feature] = try await performRequest(
             endpoint: endpoint,
             method: "POST",
@@ -232,7 +232,7 @@ extension FeaturefestClient {
             voteType: voteType.rawValue,
             email: email
         )
-        
+
         do {
             // Try to get array response first (with Prefer header)
             let votes: [Vote] = try await performRequest(
@@ -361,7 +361,7 @@ private struct CreateVoteRequest: Codable {
         case featureId = "feature_id"
         case userId = "user_id"
         case voteType = "vote_type"
-        case email
+        case email = "creator_email"
     }
 }
 
