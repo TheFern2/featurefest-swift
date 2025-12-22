@@ -167,25 +167,22 @@ public struct FeatureBoardView: View {
                 }
 
                 ForEach(filteredFeatures) { feature in
-                    ZStack {
-                        NavigationLink(destination: FeatureDetailView(
-                            feature: feature,
-                            hasVoted: votedFeatures.contains(feature.id),
-                            onUpvote: { await upvote(feature) }
-                        )) {
-                            EmptyView()
-                        }
-                        .opacity(0)
-
+                    NavigationLink(destination: FeatureDetailView(
+                        feature: feature,
+                        hasVoted: votedFeatures.contains(feature.id),
+                        onUpvote: { await upvote(feature) }
+                    )) {
                         FeatureRow(
                             feature: feature,
                             hasVoted: votedFeatures.contains(feature.id),
                             onUpvote: { await upvote(feature) }
                         )
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                     }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                 }
             }
             .padding(.horizontal)
