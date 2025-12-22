@@ -28,7 +28,7 @@ public struct FeatureBoardView: View {
                 userId: String? = nil,
                 userEmail: String? = nil) {
         self.boardId = boardId
-        self.userId = userId ?? UUID().uuidString
+        self.userId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         self.userEmail = userEmail
         self.client = FeaturefestClient(apiKey: boardId)
     }
