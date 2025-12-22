@@ -8,6 +8,7 @@ public struct FeatureBoardView: View {
 
     private let boardId: String
     private let userId: String
+    private let userEmail: String?
     private let client: FeaturefestClient
 
     @State private var features: [Feature] = []
@@ -23,9 +24,12 @@ public struct FeatureBoardView: View {
     /// - Parameters:
     ///   - boardId: The UUID of the board to display
     ///   - userId: Optional user ID for vote tracking (defaults to device-specific ID)
-    public init(boardId: String, userId: String? = nil) {
+    public init(boardId: String,
+                userId: String? = nil,
+                userEmail: String? = nil) {
         self.boardId = boardId
         self.userId = userId ?? UUID().uuidString
+        self.userEmail = userEmail
         self.client = FeaturefestClient(apiKey: boardId)
     }
 
@@ -57,6 +61,7 @@ public struct FeatureBoardView: View {
                 featureList
             }
         }
+        .background(Color(red: 0xf7/255, green: 0xf7/255, blue: 0xf9/255))
         .navigationTitle("Feature Requests")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(content: {
@@ -65,6 +70,7 @@ public struct FeatureBoardView: View {
                     showingCreateFeature = true
                 }) {
                     Image(systemName: "plus")
+                        .font(.system(size: 17, weight: .semibold))
                 }
             }
         })
@@ -152,7 +158,7 @@ public struct FeatureBoardView: View {
 
     private var featureList: some View {
         ScrollView {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 16) {
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
@@ -197,7 +203,10 @@ public struct FeatureBoardView: View {
             features = try await client.getFeatures()
             await checkUserVotes()
         } catch {
-            errorMessage = "Failed to load: \(error.localizedDescription)"
+            // Ignore cancellation errors (happen during view dismissal/recreation)
+            if (error as NSError).code != NSURLErrorCancelled {
+                errorMessage = "Failed to load: \(error.localizedDescription)"
+            }
         }
 
         isLoading = false
@@ -222,18 +231,39 @@ public struct FeatureBoardView: View {
     }
 
     private func upvote(_ feature: Feature) async {
-        do {
-            let result = try await client.upvote(featureId: feature.id, userId: userId)
+        // Optimistically toggle the vote state immediately (for instant button color change)
+        let wasVoted = votedFeatures.contains(feature.id)
+        if wasVoted {
+            votedFeatures.remove(feature.id)
+        } else {
+            votedFeatures.insert(feature.id)
+        }
 
-            // Toggle voted state based on result
-            if result != nil {
+        // Make the network call in the background
+        do {
+            let result = try await client.upvote(featureId: feature.id, userId: userId, email: userEmail)
+
+            // Verify the result matches our optimistic update
+            let actuallyVoted = result != nil
+            if actuallyVoted != !wasVoted {
+                // Server state doesn't match optimistic state, revert
+                if actuallyVoted {
+                    votedFeatures.insert(feature.id)
+                } else {
+                    votedFeatures.remove(feature.id)
+                }
+            }
+
+            // Reload features to get accurate counts from server
+            await loadFeatures()
+        } catch {
+            // Revert optimistic update on error
+            if wasVoted {
                 votedFeatures.insert(feature.id)
             } else {
                 votedFeatures.remove(feature.id)
             }
 
-            await loadFeatures()
-        } catch {
             errorMessage = "Failed to vote: \(error.localizedDescription)"
         }
     }
