@@ -239,14 +239,14 @@ public class FeaturefestClient {
         featureId: String,
         message: String,
         name: String? = nil,
-        userId: String? = nil
+        deviceId: String? = nil
     ) async throws -> Comment {
         let endpoint = "/comments"
         let body = CreateCommentRequest(
             featureId: featureId,
             message: message,
             name: name,
-            userId: userId
+            deviceId: deviceId
         )
         let comments: [Comment] = try await performRequest(
             endpoint: endpoint,
@@ -409,13 +409,13 @@ private struct CreateCommentRequest: Codable {
     let featureId: String
     let message: String
     let name: String?
-    let userId: String?
+    let deviceId: String?
 
     enum CodingKeys: String, CodingKey {
         case featureId = "feature_id"
         case message
         case name
-        case userId = "user_id"
+        case deviceId = "device_id"
     }
 }
 

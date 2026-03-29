@@ -542,7 +542,7 @@ private struct FeatureDetailView: View {
                 featureId: feature.id,
                 message: trimmed,
                 name: name.isEmpty ? nil : name,
-                userId: userId
+                deviceId: userId
             )
             commentText = ""
             commentName = ""
