@@ -1,5 +1,21 @@
 import SwiftUI
 
+// MARK: - FeatureBoardStyle
+
+/// Controls the appearance of FeatureBoardView
+public struct FeatureBoardStyle {
+    public var accentColor: Color
+    public var colorScheme: ColorScheme?
+
+    public init(accentColor: Color = .blue, colorScheme: ColorScheme? = nil) {
+        self.accentColor = accentColor
+        self.colorScheme = colorScheme
+    }
+
+    public static let `default` = FeatureBoardStyle()
+    public static let dark = FeatureBoardStyle(colorScheme: .dark)
+}
+
 /// A simple SwiftUI view for displaying and voting on features from a board
 @available(iOS 15.0, *)
 public struct FeatureBoardView: View {
@@ -9,6 +25,7 @@ public struct FeatureBoardView: View {
     private let boardId: String
     private let userId: String
     private let userEmail: String?
+    private let style: FeatureBoardStyle
     private let client: FeaturefestClient
 
     @State private var features: [Feature] = []
@@ -24,12 +41,16 @@ public struct FeatureBoardView: View {
     /// - Parameters:
     ///   - boardId: The UUID of the board to display
     ///   - userId: Optional user ID for vote tracking (defaults to device-specific ID)
+    ///   - userEmail: Optional email for notifications
+    ///   - style: Visual style configuration (accent color, color scheme)
     public init(boardId: String,
                 userId: String? = nil,
-                userEmail: String? = nil) {
+                userEmail: String? = nil,
+                style: FeatureBoardStyle = .default) {
         self.boardId = boardId
         self.userId = userId ?? UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         self.userEmail = userEmail
+        self.style = style
         self.client = FeaturefestClient(apiKey: boardId)
     }
 
@@ -61,16 +82,18 @@ public struct FeatureBoardView: View {
                 featureList
             }
         }
-        .background(Color(red: 0xf7/255, green: 0xf7/255, blue: 0xf9/255))
+        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Feature Requests")
         .navigationBarTitleDisplayMode(.inline)
+        .preferredColorScheme(style.colorScheme)
         .toolbar(content: {
             ToolbarItem(placement: toolbarPlacement) {
                 Button(action: {
                     showingCreateFeature = true
                 }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .semibold))
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(style.accentColor)
                 }
             }
         })
@@ -170,11 +193,13 @@ public struct FeatureBoardView: View {
                     NavigationLink(destination: FeatureDetailView(
                         feature: feature,
                         hasVoted: votedFeatures.contains(feature.id),
+                        accentColor: style.accentColor,
                         onUpvote: { await upvote(feature) }
                     )) {
                         FeatureRow(
                             feature: feature,
                             hasVoted: votedFeatures.contains(feature.id),
+                            accentColor: style.accentColor,
                             onUpvote: { await upvote(feature) }
                         )
                     }
@@ -262,6 +287,7 @@ public struct FeatureBoardView: View {
 private struct FeatureRow: View {
     let feature: Feature
     let hasVoted: Bool
+    let accentColor: Color
     let onUpvote: () async -> Void
 
     @State private var isVoting = false
@@ -304,13 +330,13 @@ private struct FeatureRow: View {
                 VStack(spacing: 6) {
                     Image(systemName: "triangle.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(hasVoted ? .blue : .black)
+                        .foregroundColor(hasVoted ? accentColor : .primary)
                     Text("\(feature.totalVotes)")
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(hasVoted ? .blue : .black)
+                        .foregroundColor(hasVoted ? accentColor : .primary)
                 }
                 .frame(width: 56, height: 70)
-                .background(hasVoted ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                .background(hasVoted ? accentColor.opacity(0.1) : Color.gray.opacity(0.1))
                 .cornerRadius(12)
             }
             .buttonStyle(.borderless)
@@ -343,6 +369,7 @@ private struct FeatureRow: View {
 private struct FeatureDetailView: View {
     let feature: Feature
     let hasVoted: Bool
+    let accentColor: Color
     let onUpvote: () async -> Void
 
     @State private var isVoting = false
@@ -393,8 +420,8 @@ private struct FeatureDetailView: View {
                         }
                     }
                     .padding()
-                    .background(hasVoted ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
-                    .foregroundColor(hasVoted ? .blue : .primary)
+                    .background(hasVoted ? accentColor.opacity(0.1) : Color.gray.opacity(0.1))
+                    .foregroundColor(hasVoted ? accentColor : .primary)
                     .cornerRadius(12)
                 }
                 .buttonStyle(.plain)
