@@ -215,6 +215,51 @@ public class FeaturefestClient {
         return Set(votes.map { $0.featureId })
     }
     
+    /// Fetch all comments for a feature
+    /// - Parameter featureId: The ID of the feature
+    /// - Returns: Array of comments ordered oldest first
+    public func getComments(featureId: String) async throws -> [Comment] {
+        let endpoint = "/comments"
+        let queryItems = [
+            URLQueryItem(name: "feature_id", value: "eq.\(featureId)"),
+            URLQueryItem(name: "order", value: "created_at.asc")
+        ]
+        return try await performRequest(endpoint: endpoint, method: "GET", queryItems: queryItems)
+    }
+
+    /// Post a new comment on a feature
+    /// - Parameters:
+    ///   - featureId: The ID of the feature
+    ///   - message: The comment text
+    ///   - name: Optional display name
+    ///   - userId: Optional user ID (falls back to device ID if nil)
+    /// - Returns: The created comment
+    @discardableResult
+    public func postComment(
+        featureId: String,
+        message: String,
+        name: String? = nil,
+        userId: String? = nil
+    ) async throws -> Comment {
+        let endpoint = "/comments"
+        let body = CreateCommentRequest(
+            featureId: featureId,
+            message: message,
+            name: name,
+            userId: userId
+        )
+        let comments: [Comment] = try await performRequest(
+            endpoint: endpoint,
+            method: "POST",
+            body: body,
+            headers: ["Prefer": "return=representation"]
+        )
+        guard let comment = comments.first else {
+            throw FeaturefestError.invalidResponse
+        }
+        return comment
+    }
+
     /// Validate that the API key (board ID) exists and is accessible
     /// - Returns: Board information if valid
     public func validateAPIKey() async throws -> Board {
@@ -357,6 +402,20 @@ private struct CreateFeatureRequest: Codable {
         case boardId = "board_id"
         case userId = "user_id"
         case creatorEmail = "creator_email"
+    }
+}
+
+private struct CreateCommentRequest: Codable {
+    let featureId: String
+    let message: String
+    let name: String?
+    let userId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case featureId = "feature_id"
+        case message
+        case name
+        case userId = "user_id"
     }
 }
 

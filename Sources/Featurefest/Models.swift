@@ -159,6 +159,46 @@ public enum VoteType: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - Comment
+
+/// Represents a comment on a feature request
+public struct Comment: Codable, Identifiable {
+    public let id: String
+    public let featureId: String
+    public let message: String
+    public let name: String?
+    public let email: String?
+    public let userId: String?
+    public let deviceId: String?
+    public let createdAt: Date
+
+    public var displayName: String { name ?? "Anonymous" }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case featureId = "feature_id"
+        case message
+        case name
+        case email
+        case userId = "user_id"
+        case deviceId = "device_id"
+        case createdAt = "created_at"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        featureId = try container.decode(String.self, forKey: .featureId)
+        message = try container.decode(String.self, forKey: .message)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        userId = try container.decodeIfPresent(String.self, forKey: .userId)
+        deviceId = try container.decodeIfPresent(String.self, forKey: .deviceId)
+        let createdAtString = try container.decode(String.self, forKey: .createdAt)
+        createdAt = iso8601Formatter.date(from: createdAtString) ?? Date()
+    }
+}
+
 // MARK: - Board
 
 /// Represents a feature board

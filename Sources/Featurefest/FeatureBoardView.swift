@@ -194,6 +194,8 @@ public struct FeatureBoardView: View {
                         feature: feature,
                         hasVoted: votedFeatures.contains(feature.id),
                         accentColor: style.accentColor,
+                        client: client,
+                        userId: userId,
                         onUpvote: { await upvote(feature) }
                     )) {
                         FeatureRow(
@@ -370,9 +372,17 @@ private struct FeatureDetailView: View {
     let feature: Feature
     let hasVoted: Bool
     let accentColor: Color
+    let client: FeaturefestClient
+    let userId: String
     let onUpvote: () async -> Void
 
     @State private var isVoting = false
+    @State private var comments: [Comment] = []
+    @State private var isLoadingComments = false
+    @State private var commentText = ""
+    @State private var commentName = ""
+    @State private var isPostingComment = false
+    @State private var commentError: String?
 
     var body: some View {
         ScrollView {
@@ -392,7 +402,6 @@ private struct FeatureDetailView: View {
                         .background(statusColor.opacity(0.15))
                         .foregroundColor(statusColor)
                         .cornerRadius(8)
-
                     Spacer()
                 }
 
@@ -415,9 +424,7 @@ private struct FeatureDetailView: View {
                         Text("\(feature.totalVotes) votes")
                             .font(.headline)
                         Spacer()
-                        if isVoting {
-                            ProgressView()
-                        }
+                        if isVoting { ProgressView() }
                     }
                     .padding()
                     .background(hasVoted ? accentColor.opacity(0.1) : Color.gray.opacity(0.1))
@@ -427,28 +434,123 @@ private struct FeatureDetailView: View {
                 .buttonStyle(.plain)
                 .disabled(isVoting)
 
-                Spacer()
+                // MARK: Comments
+                Divider()
+
+                Text("Comments")
+                    .font(.headline)
+
+                if isLoadingComments {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else if comments.isEmpty {
+                    Text("No comments yet. Be the first!")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(comments) { comment in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(comment.displayName)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text(comment.createdAt, style: .relative)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Text(comment.message)
+                                .font(.subheadline)
+                        }
+                        .padding(12)
+                        .background(Color.gray.opacity(0.08))
+                        .cornerRadius(10)
+                    }
+                }
+
+                // MARK: Add comment
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Your name (optional)", text: $commentName)
+                        .font(.subheadline)
+                        .padding(10)
+                        .background(Color.gray.opacity(0.08))
+                        .cornerRadius(8)
+
+                    TextField("Leave a comment…", text: $commentText, axis: .vertical)
+                        .font(.subheadline)
+                        .lineLimit(3...6)
+                        .padding(10)
+                        .background(Color.gray.opacity(0.08))
+                        .cornerRadius(8)
+
+                    if let commentError {
+                        Text(commentError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+
+                    Button {
+                        Task { await postComment() }
+                    } label: {
+                        HStack {
+                            if isPostingComment { ProgressView() }
+                            Text("Post Comment")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(commentText.trimmingCharacters(in: .whitespaces).isEmpty || isPostingComment)
+                }
             }
             .padding()
         }
         .navigationTitle("Feature Details")
         .navigationBarTitleDisplayMode(.inline)
+        .task { await loadComments() }
+    }
+
+    private func loadComments() async {
+        isLoadingComments = true
+        comments = (try? await client.getComments(featureId: feature.id)) ?? []
+        isLoadingComments = false
+    }
+
+    private func postComment() async {
+        let trimmed = commentText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+
+        isPostingComment = true
+        commentError = nil
+        do {
+            let name = commentName.trimmingCharacters(in: .whitespaces)
+            try await client.postComment(
+                featureId: feature.id,
+                message: trimmed,
+                name: name.isEmpty ? nil : name,
+                userId: userId
+            )
+            commentText = ""
+            commentName = ""
+            await loadComments()
+        } catch {
+            commentError = "Failed to post: \(error.localizedDescription)"
+        }
+        isPostingComment = false
     }
 
     private var statusColor: Color {
         switch feature.status {
-        case .pending:
-            return .gray
-        case .inReview:
-            return .blue
-        case .planned:
-            return .purple
-        case .inProgress:
-            return .orange
-        case .completed:
-            return .green
-        case .rejected:
-            return .red
+        case .pending: return .gray
+        case .inReview: return .blue
+        case .planned: return .purple
+        case .inProgress: return .orange
+        case .completed: return .green
+        case .rejected: return .red
         }
     }
 }
