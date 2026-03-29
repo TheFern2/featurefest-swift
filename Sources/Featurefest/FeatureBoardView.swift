@@ -448,23 +448,25 @@ private struct FeatureDetailView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 } else {
-                    ForEach(comments) { comment in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(comment.displayName)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                Spacer()
-                                Text(comment.createdAt, style: .relative)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(comments) { comment in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(comment.displayName)
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                    Spacer()
+                                    Text(timeAgo(comment.createdAt))
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                Text(comment.message)
+                                    .font(.subheadline)
                             }
-                            Text(comment.message)
-                                .font(.subheadline)
+                            .padding(10)
+                            .background(Color.gray.opacity(0.08))
+                            .cornerRadius(10)
                         }
-                        .padding(12)
-                        .background(Color.gray.opacity(0.08))
-                        .cornerRadius(10)
                     }
                 }
 
@@ -551,6 +553,17 @@ private struct FeatureDetailView: View {
             commentError = "Failed to post: \(error.localizedDescription)"
         }
         isPostingComment = false
+    }
+
+    private func timeAgo(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        switch seconds {
+        case ..<3600:   return "\(max(1, seconds / 60))m"
+        case ..<86400:  return "\(seconds / 3600)h"
+        case ..<604800: return "\(seconds / 86400)d"
+        case ..<2592000: return "\(seconds / 604800)w"
+        default:        return "\(seconds / 2592000)mo"
+        }
     }
 
     private var statusColor: Color {
