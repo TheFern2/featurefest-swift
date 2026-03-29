@@ -1,6 +1,10 @@
 import Foundation
 
-private let iso8601Formatter: ISO8601DateFormatter = ISO8601DateFormatter()
+private let iso8601Formatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+}()
 
 // MARK: - Feature
 
