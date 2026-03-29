@@ -476,12 +476,22 @@ private struct FeatureDetailView: View {
                         .background(Color.gray.opacity(0.08))
                         .cornerRadius(8)
 
-                    TextField("Leave a comment…", text: $commentText, axis: .vertical)
-                        .font(.subheadline)
-                        .lineLimit(3...6)
-                        .padding(10)
-                        .background(Color.gray.opacity(0.08))
-                        .cornerRadius(8)
+                    ZStack(alignment: .topLeading) {
+                        if commentText.isEmpty {
+                            Text("Leave a comment…")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                        }
+                        TextEditor(text: $commentText)
+                            .font(.subheadline)
+                            .frame(minHeight: 80)
+                            .padding(6)
+                            .opacity(commentText.isEmpty ? 0.85 : 1)
+                    }
+                    .background(Color.gray.opacity(0.08))
+                    .cornerRadius(8)
 
                     if let commentError {
                         Text(commentError)
