@@ -1,5 +1,7 @@
 import Foundation
 
+private let iso8601Formatter: ISO8601DateFormatter = ISO8601DateFormatter()
+
 // MARK: - Feature
 
 /// Represents a feature request with voting information
@@ -14,7 +16,6 @@ public struct Feature: Codable, Identifiable, Hashable {
     public let createdAt: Date
     public let updatedAt: Date?
     public let upvotes: Int
-    public let downvotes: Int
     public let totalVotes: Int
 
     enum CodingKeys: String, CodingKey {
@@ -28,32 +29,30 @@ public struct Feature: Codable, Identifiable, Hashable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case upvotes
-        case downvotes
         case totalVotes = "total_votes"
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         id = try container.decode(String.self, forKey: .id)
         title = try container.decode(String.self, forKey: .title)
         description = try container.decode(String.self, forKey: .description)
-        
+
         let statusString = try container.decode(String.self, forKey: .status)
         status = FeatureStatus(rawValue: statusString) ?? .pending
-        
+
         boardId = try container.decode(String.self, forKey: .boardId)
         userId = try container.decodeIfPresent(String.self, forKey: .userId)
         creatorEmail = try container.decodeIfPresent(String.self, forKey: .creatorEmail)
 
         let createdAtString = try container.decode(String.self, forKey: .createdAt)
-        createdAt = ISO8601DateFormatter().date(from: createdAtString) ?? Date()
-        
+        createdAt = iso8601Formatter.date(from: createdAtString) ?? Date()
+
         let updatedAtString = try container.decodeIfPresent(String.self, forKey: .updatedAt)
-        updatedAt = updatedAtString.flatMap { ISO8601DateFormatter().date(from: $0) }
-        
+        updatedAt = updatedAtString.flatMap { iso8601Formatter.date(from: $0) }
+
         upvotes = try container.decode(Int.self, forKey: .upvotes)
-        downvotes = try container.decode(Int.self, forKey: .downvotes)
         totalVotes = try container.decode(Int.self, forKey: .totalVotes)
     }
 }
@@ -115,10 +114,10 @@ public struct Vote: Codable, Identifiable, Hashable {
         voteType = VoteType(rawValue: voteTypeString) ?? .up
 
         let createdAtString = try container.decode(String.self, forKey: .createdAt)
-        createdAt = ISO8601DateFormatter().date(from: createdAtString) ?? Date()
+        createdAt = iso8601Formatter.date(from: createdAtString) ?? Date()
 
         let updatedAtString = try container.decodeIfPresent(String.self, forKey: .updatedAt)
-        updatedAt = updatedAtString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        updatedAt = updatedAtString.flatMap { iso8601Formatter.date(from: $0) }
     }
 
     // Manual initializer for fallback cases
@@ -189,9 +188,9 @@ public struct Board: Codable, Identifiable, Hashable {
         userId = try container.decode(String.self, forKey: .userId)
         
         let createdAtString = try container.decode(String.self, forKey: .createdAt)
-        createdAt = ISO8601DateFormatter().date(from: createdAtString) ?? Date()
-        
+        createdAt = iso8601Formatter.date(from: createdAtString) ?? Date()
+
         let updatedAtString = try container.decodeIfPresent(String.self, forKey: .updatedAt)
-        updatedAt = updatedAtString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        updatedAt = updatedAtString.flatMap { iso8601Formatter.date(from: $0) }
     }
 }

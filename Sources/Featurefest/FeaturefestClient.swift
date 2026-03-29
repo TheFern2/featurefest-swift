@@ -181,14 +181,38 @@ public class FeaturefestClient {
             URLQueryItem(name: "user_id", value: "eq.\(userId)"),
             URLQueryItem(name: "select", value: "*")
         ]
-        
+
         let votes: [Vote] = try await performRequest(
             endpoint: endpoint,
             method: "GET",
             queryItems: queryItems
         )
-        
+
         return votes.first
+    }
+
+    /// Fetch votes for multiple features by the same user in a single request
+    /// - Parameters:
+    ///   - featureIds: The IDs of the features to check
+    ///   - userId: The user ID
+    /// - Returns: Set of feature IDs the user has voted on
+    public func getUserVotes(featureIds: [String], userId: String) async throws -> Set<String> {
+        guard !featureIds.isEmpty else { return [] }
+
+        let idsParam = featureIds.joined(separator: ",")
+        let endpoint = "/votes"
+        let queryItems = [
+            URLQueryItem(name: "feature_id", value: "in.(\(idsParam))"),
+            URLQueryItem(name: "user_id", value: "eq.\(userId)")
+        ]
+
+        let votes: [Vote] = try await performRequest(
+            endpoint: endpoint,
+            method: "GET",
+            queryItems: queryItems
+        )
+
+        return Set(votes.map { $0.featureId })
     }
     
     /// Validate that the API key (board ID) exists and is accessible
@@ -233,67 +257,20 @@ extension FeaturefestClient {
             email: email
         )
 
-        do {
-            // Try to get array response first (with Prefer header)
-            let votes: [Vote] = try await performRequest(
-                endpoint: endpoint,
-                method: "POST",
-                body: voteData,
-                headers: ["Prefer": "return=representation"]
-            )
-            
-            if let vote = votes.first {
-                return vote
-            }
-            
-            // If array is empty, try without Prefer header
-            let singleVote: Vote = try await performRequest(
-                endpoint: endpoint,
-                method: "POST",
-                body: voteData
-            )
-            return singleVote
-            
-        } catch {
-            // If both fail, try to create a mock vote for response
-            print("Vote creation failed, attempting fallback: \(error)")
-            
-            // Return a basic vote structure for the calling code
-            return Vote(
-                id: UUID().uuidString,
-                featureId: featureId,
-                userId: userId,
-                email: email,
-                voteType: voteType,
-                createdAt: Date(),
-                updatedAt: nil
-            )
-        }
-    }
-    
-    private func updateVote(
-        voteId: String,
-        voteType: VoteType
-    ) async throws -> Vote {
-        let endpoint = "/votes"
-        let queryItems = [URLQueryItem(name: "id", value: "eq.\(voteId)")]
-        let updateData = UpdateVoteRequest(voteType: voteType.rawValue)
-        
         let votes: [Vote] = try await performRequest(
             endpoint: endpoint,
-            method: "PATCH",
-            queryItems: queryItems,
-            body: updateData,
+            method: "POST",
+            body: voteData,
             headers: ["Prefer": "return=representation"]
         )
-        
+
         guard let vote = votes.first else {
             throw FeaturefestError.invalidResponse
         }
-        
+
         return vote
     }
-    
+
     private func performRequest<T: Codable>(
         endpoint: String,
         method: String,
@@ -362,14 +339,6 @@ private struct CreateVoteRequest: Codable {
         case userId = "user_id"
         case voteType = "vote_type"
         case email = "creator_email"
-    }
-}
-
-private struct UpdateVoteRequest: Codable {
-    let voteType: String
-    
-    enum CodingKeys: String, CodingKey {
-        case voteType = "vote_type"
     }
 }
 

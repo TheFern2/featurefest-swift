@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A simple SwiftUI view for displaying and voting on features from a board
-@available(iOS 15.0, macOS 12.0, *)
+@available(iOS 15.0, *)
 public struct FeatureBoardView: View {
 
     // MARK: - Properties
@@ -28,7 +28,7 @@ public struct FeatureBoardView: View {
                 userId: String? = nil,
                 userEmail: String? = nil) {
         self.boardId = boardId
-        self.userId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        self.userId = userId ?? UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         self.userEmail = userEmail
         self.client = FeaturefestClient(apiKey: boardId)
     }
@@ -39,7 +39,7 @@ public struct FeatureBoardView: View {
         VStack(spacing: 0) {
             // Segmented Control
             Picker("Status", selection: $selectedStatus) {
-                ForEach(FeatureStatus.allCases, id: \.self) { status in
+                ForEach(FeatureStatus.allCases.filter { $0 != .completed && $0 != .rejected }, id: \.self) { status in
                     Text(status.displayName).tag(status)
                 }
             }
@@ -180,7 +180,7 @@ public struct FeatureBoardView: View {
                     }
                     .buttonStyle(.plain)
                     .contentShape(Rectangle())
-                    .background(Color(.systemBackground))
+                    .background(Color(uiColor: .systemBackground))
                     .cornerRadius(12)
                     .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                 }
@@ -210,21 +210,11 @@ public struct FeatureBoardView: View {
     }
 
     private func checkUserVotes() async {
-        var voted = Set<String>()
-
-        for feature in features {
-            do {
-                let vote = try await client.getUserVote(featureId: feature.id, userId: userId)
-                if vote != nil {
-                    voted.insert(feature.id)
-                }
-            } catch {
-                // Ignore errors when checking votes
-                continue
-            }
+        do {
+            votedFeatures = try await client.getUserVotes(featureIds: features.map { $0.id }, userId: userId)
+        } catch {
+            // Ignore errors when checking votes
         }
-
-        votedFeatures = voted
     }
 
     private func upvote(_ feature: Feature) async {
@@ -268,7 +258,7 @@ public struct FeatureBoardView: View {
 
 // MARK: - Feature Row Component
 
-@available(iOS 15.0, macOS 12.0, *)
+@available(iOS 15.0, *)
 private struct FeatureRow: View {
     let feature: Feature
     let hasVoted: Bool
@@ -349,7 +339,7 @@ private struct FeatureRow: View {
 
 // MARK: - Feature Detail View
 
-@available(iOS 15.0, macOS 12.0, *)
+@available(iOS 15.0, *)
 private struct FeatureDetailView: View {
     let feature: Feature
     let hasVoted: Bool
@@ -438,7 +428,7 @@ private struct FeatureDetailView: View {
 
 // MARK: - Create Feature View
 
-@available(iOS 15.0, macOS 12.0, *)
+@available(iOS 15.0, *)
 private struct CreateFeatureView: View {
     let client: FeaturefestClient
     let userId: String
@@ -526,7 +516,7 @@ private struct CreateFeatureView: View {
 
 // MARK: - Preview
 
-@available(iOS 15.0, macOS 12.0, *)
+@available(iOS 15.0, *)
 struct FeatureBoardView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
