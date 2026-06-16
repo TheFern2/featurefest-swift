@@ -26,6 +26,7 @@ public struct FeatureBoardView: View {
     private let userId: String
     private let userEmail: String?
     private let style: FeatureBoardStyle
+    private let showCreateButton: Bool
     private let client: FeaturefestClient
 
     @State private var features: [Feature] = []
@@ -46,11 +47,13 @@ public struct FeatureBoardView: View {
     public init(boardId: String,
                 userId: String? = nil,
                 userEmail: String? = nil,
-                style: FeatureBoardStyle = .default) {
+                style: FeatureBoardStyle = .default,
+                showCreateButton: Bool = true) {
         self.boardId = boardId
         self.userId = userId ?? UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         self.userEmail = userEmail
         self.style = style
+        self.showCreateButton = showCreateButton
         self.client = FeaturefestClient(apiKey: boardId)
     }
 
@@ -88,12 +91,14 @@ public struct FeatureBoardView: View {
         .preferredColorScheme(style.colorScheme)
         .toolbar(content: {
             ToolbarItem(placement: toolbarPlacement) {
-                Button(action: {
-                    showingCreateFeature = true
-                }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(style.accentColor)
+                if showCreateButton {
+                    Button(action: {
+                        showingCreateFeature = true
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(style.accentColor)
+                    }
                 }
             }
         })
@@ -675,5 +680,12 @@ struct FeatureBoardView_Previews: PreviewProvider {
             FeatureBoardView(boardId: "a4f09436-a98e-4a04-a3bc-8ea1b467fdc1")
                 .navigationTitle("Feature Requests")
         }
+        .previewDisplayName("With Create Button")
+
+        NavigationView {
+            FeatureBoardView(boardId: "a4f09436-a98e-4a04-a3bc-8ea1b467fdc1", showCreateButton: false)
+                .navigationTitle("Feature Requests")
+        }
+        .previewDisplayName("Without Create Button")
     }
 }
